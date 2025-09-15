@@ -44,9 +44,6 @@ litters_df = read_csv("./data/FAS_litters.csv", skip = 10, col_names = FALSE)
 ```
 
 
-```{r}
-litters_df = read_csv("./data/FAS_litters.csv", na = c("", "NA",".",999)
-```
 
 check out '?read_csv()' for more information.
 
@@ -66,6 +63,18 @@ Read in a SAS file.
 library(haven)
 pulse_df = read_sas("./data/public_pulse_data.sas7bdat")
 pulse_df
+```
+
+## Comparison with Base R
+
+what about 'read.csv' ...?
+
+```{r}
+litters_base = read.csv("./data/FAS_litters.csv")
+litters_readr = read.csv("./data/FAS_litters.csv")
+
+litters_base
+litters_readr
 ```
 
 
