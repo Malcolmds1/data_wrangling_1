@@ -1,0 +1,10 @@
+---
+title: "Tidy Data"
+output: github_document
+date: "2025-09-18"
+---
+
+```{r setup}
+library(tidyverse)
+```
+
