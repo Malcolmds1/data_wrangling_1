@@ -1,102 +1,169 @@
 ---
-title: "Tidy Data"
+title: "data_manipulation"
 output: github_document
 date: "2025-09-18"
 ---
 
-```{r setup}
+```{r}
 library(tidyverse)
 ```
 
-## `pivot_longer`
-
-Load the PULSE data
+Let's import the datasets.
 
 ```{r}
-pulse_data = 
-  haven::read_sas("./data/public_pulse_data.sas7bdat") %>%
-  janitor::clean_names()
+litters_df = 
+  read_csv("./data/FAS_litters.csv", na = c("NA",".",""))
+litters_df =
+  janitor::clean_names(litters_df)
+
+pups_df = 
+  read_csv("./data/FAS_pups.csv", skip = 3, na = c("NA",".",""))
+pups_df = 
+  janitor::clean_names(pups_df)
 ```
 
-Wide format to long format ...
+
+## `select`
+
+`select` selects variables from my dataframe
 
 ```{r}
-pulse_data_tidy =
-  pulse_data %>%
-  pivot_longer(
-    bdi_score_bl:bdi_score_12m,
-    names_to = "visit",
-    names_prefix = "bdi_score_",
-    values_to = "bdi"
+select(litters_df, group,litter_number,gd0_weight)
+```
+
+select a range
+
+```{r}
+select(litters_df, group:gd_of_birth)
+```
+
+select by removal
+
+```{r}
+select(litters_df, -group)
+select(litters_df, -(group:gd_of_birth))
+```
+
+select by prefix
+
+```{r}
+select(litters_df, group, starts_with("gd"))
+```
+
+rearrange by selecting
+
+```{r}
+select(litters_df, group, starts_with("gd"), group)
+select(litters_df, litter_number, everything())
+
+relocate(litters_df, litter_number)
+```
+
+rename by selecting
+
+```{r}
+select(litters_df, GROUP = group, everything())
+rename(litters_df, GROUP = group)
+```
+
+what if i only select one variable...?
+
+```{r}
+select(litters_df, group)
+pull(litters_df, group)
+```
+
+## `filter`
+
+use `filter()` to filter out rows
+
+```{r}
+filter(litters_df,gd_of_birth == 20, pups_born_alive == 6)
+```
+
+look for more than two pups alive
+
+```{r}
+filter(litters_df, pups_born_alive > 5)
+```
+
+look for non-matches
+
+```{r}
+filter(litters_df, pups_born_alive != 6)
+```
+
+match to a set
+
+```{r}
+filter(litters_df, group %in% c("Con7", "Con8"))
+```
+
+filter out missing rows with `drop_na()`
+
+```{r}
+drop_na(litters_df)
+drop_na(litters_df, gd0_weight)
+```
+
+
+```{r}
+filter(pups_df, sex == 1)
+filter(pups_df, pd_walk < 11, sex == 2)
+```
+
+
+## `mutate`
+
+use `mutate()` to create or modify variables
+
+```{r}
+mutate(
+  litters_df,
+  wt_gain = gd18_weight - gd0_weight
   )
 ```
 
-rewrite, combine, and extend ( to add a mutate)
+## `arrange`
+
+`arrange()` arranges things
+
 ```{r}
-pulse_data = 
-  haven::read_sas("./data/public_pulse_data.sas7bdat") %>%
-  janitor::clean_names() %>%
-  pivot_longer(
-    bdi_score_bl:bdi_score_12m,
-    names_to = "visit",
-    names_prefix = "bdi_score_",
-    values_to = "bdi"
-  ) %>% 
-  relocate(id, visit) %>%
-  mutate(visit = recode(visit,"bl"= "00m"))
+arrange(litters_df, pups_born_alive)
+arrange(litters_df, desc(group),pups_born_alive)
+
+arrange(litters_df, gd0_weight)
 ```
 
 
-# `pivot wider`
+## PIPES
 
-Make up some data!
+Lets' see a bad way to do things
 
 ```{r}
-analysis_result = 
-  tibble(
-    group = c("treatment", "treatment", "placebo", "placebo"),
-    time = c("pre","post","pre","post"),
-    mean = c(4, 8, 3.5, 4)
-  )
 
-analysis_result %>%
-  pivot_wider(
-    names_from = "time",
-    values_from = "mean"
-  )
 ```
 
-## Binding rows
-
-Using the LotR data.
-
-First step: import each table.
+Use pipes to avoid all this
 
 ```{r}
-fellowship_ring =
-  readxl::read_excel("./data/LotR_Words.xlsx",range = "B3:D6") %>%
-  mutate(movie="fellowship_ring")
-
-two_towers =
-  readxl::read_excel("./data/LotR_Words.xlsx",range = "F3:H6") %>%
-  mutate(movie="two_towers")
-
-return_king =
-  readxl::read_excel("./data/LotR_Words.xlsx",range = "J3:L6") %>%
-  mutate(movie="return_king")
+litters_df = 
+  read_csv("./data/FAS_litters.csv", na = c("NA",".","")) |> 
+  janitor::clean_names() |>
+  select(group, litter_number, satrts_with("gd")) |>
+  drop_na() |>
+  mutate(
+    wt_gain = gd18_weight - gd0_weight)
 ```
 
-Bind all the rows together
+Import and tidy the pups data in a piped chain of commands
 
 ```{r}
-lotr_tidy = 
-  bind_rows(fellowship_ring,two_towers,return_king) %>%
-  janitor::clean_names() %>%
-  relocate(movie) %>%
-  pivot_longer(
-    female:male,
-    names_to = "gender",
-    values_to = "words"
-  )
+pups_df = 
+  read_csv("./data/FAS_pups.csv", skip = 3, na = c("NA",".","")) |> 
+  janitor::clean_names() |>
+  filter(sex == 1) |>
+  select(-pd_ears) |>
+  mutate(pd_pivot_ge7 = pd_pivot >= 7)
 ```
 
